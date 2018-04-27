@@ -25,22 +25,28 @@ export interface BuildConfig {
   buildDir: string;
 }
 
+function createFileObject(filePath: string, options: FileOptions): FileObject {
+  const { fileAccess, bucket } = options;
+  const fileContent = fs.readFileSync(filePath);
+  return ({
+    Key: filePath,
+    Body: fileContent,
+    ACL: fileAccess,
+    Bucket: bucket,
+  })
+}
+
 function readFilesInDir(options: FileOptions) {
   function readFiles(targetDir: string, fileList: FileObject [] = []) {
     fs.readdirSync(targetDir).forEach(file => {
-      const targetName: string = path.join(targetDir, file);
+      const filePath: string = path.join(targetDir, file);
 
       // Handle subfolders
-      if (fs.statSync(targetName).isDirectory()) return readFiles(targetName, fileList);
+      if (fs.statSync(filePath).isDirectory()) return readFiles(filePath, fileList);
 
       // Handle regular files
-      const fileBody = fs.readFileSync(targetName);
-      fileList.push({
-        Key: targetName,
-        Body: fileBody,
-        ACL: options.fileAccess,
-        Bucket: options.bucket,
-      });
+      const fileObject = createFileObject(filePath, options);
+      fileList.push(fileObject);
     });
 
     return fileList;
