@@ -55,19 +55,32 @@ function readFilesInDir(options: FileOptions) {
   return (targetDir, fileList?) => readFiles(targetDir, fileList);
 }
 
-function createBucket() {
+function createBucket(options = {}) {
+  return new aws.S3(options);
+}
 
+function uploadFilesToBucket(s3: aws.S3, fileList: FileObject []) {
+  return new Promise((resolve, reject) => {
+    fileList.map((item) => {
+      s3.putObject(item, (err, data) => {
+        if (err) reject(err);
+        
+      })
+    })
+  })
 }
 
 function uploadToS3(config: BuildConfig) {
-  const s3 = new aws.S3();
+  const s3 = createBucket();
   const getFilesWithOptions = readFilesInDir({
     fileAccess: 'public-read',
     bucket: config.accessKeyId,
   });
 
-  const filesToUpload = getFilesWithOptions(config.buildDir)
-  console.log(filesToUpload);
+  Promise.resolve(getFilesWithOptions(config.buildDir))
+    .then((fileList) => uploadFilesToBucket(s3, fileList))
+    .then(console.log)
+    .catch((err) => console.error(err));
 }
 
 // Function call for testing via ts-node
